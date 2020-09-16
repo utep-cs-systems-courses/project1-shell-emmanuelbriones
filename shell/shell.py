@@ -2,15 +2,56 @@
 
 import sys, os, re
 
+def shell(args):
+    processID = os.getpid()
+    rc = os.fork()
 
-while True:
-    os.write(1, ('Enter a command, "exit" quits the program.\n$ ').encode())
+    if rc < 0: 
+        os.write(2, ("fork failed, returning %d\n" % rc).encode())
+        sys.exit(1) #exit
 
-    shellInput = input() # get the input from the user using the shell
+    elif rc == 0:
+        for directory in re.split(":", os.environ['PATH']): # try all paths
+            pgrm = "%s/%s" % (directory, args[0])
+            try:
+                os.execve(pgrm, args, os.environ) # exec the program
+            except FileNotFoundError:
+                pass
+                
+        os.write(2, ("%s: command not found\n" % args[0]).encode()) # state that the command wasn't found
+        sys.exit(1) # exit
     
-    args = shellInput.split() # make the input a list
+    else:
+        childprocessID = os.wait()
+
+
+def main():
+    while True:
+        if 'PS1' in os.environ:
+            os.write(1, (os.environ['PS1']).encode())
+        else:
+            os.write(1, ("Enter a command, \"exit\" quits the program.\n$ ").encode())
+
+        shellInput = input() # get the input from the user using the shell
     
-    if shellInput == "": # continue if there is no input from the user
-        continue
-    elif 'exit' in shellInput: # exit shell
-        break
+        args = shellInput.split() # make the input a list
+    
+        if shellInput == "": # continue if there is no input from the user
+            continue
+        elif 'cd' in args[0]: # change directory
+            try: 
+                if len(args) <= 1 or args[-1] == " ": # go to the parent directory
+                    os.chdir("..")
+                else: 
+                    os.chdir(args[1])
+                print(os.getcwd())
+            except FileNotFoundError:
+                os.write(1, ("cd: %s: No such file or directory\n" % args[1]).encode())
+                pass
+        elif 'exit' in shellInput: # exit shell
+            break
+        else:
+            shell(args)
+
+if __name__ == "__main__":
+    main()
