@@ -18,7 +18,7 @@ def shell(args):
             except FileNotFoundError:
                 pass
                 
-        os.write(2, ("%s: command not found\n" % args[0]).encode()) # state that the command wasn't found
+        os.write(2, ("-bash: %s: command not found\n" % args[0]).encode()) # state that the command wasn't found
         sys.exit(1) # exit
     
     else:
@@ -46,10 +46,10 @@ def main():
                     os.chdir(args[1])
                 print(os.getcwd())
             except FileNotFoundError:
-                os.write(1, ("cd: %s: No such file or directory\n" % args[1]).encode())
+                os.write(1, ("-bash: cd: %s: No such file or directory\n" % args[1]).encode())
                 pass
         elif 'exit' in shellInput: # exit shell
-            break
+            sys.exit(0)
         else:
             shell(args)
 
